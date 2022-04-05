@@ -219,8 +219,8 @@ func TestUnparseableParent(t *testing.T) {
 	})
 }
 
-func TestWithWorkspaces(t *testing.T) {
-	runTest(t, filepath.Join("golden", "withWorkspace.yaml"), []string{
+func TestWithCreateWorkspace(t *testing.T) {
+	runTest(t, filepath.Join("golden", "withCreateWorkspace.yaml"), []string{
 		"--root",
 		filepath.Join("..", "test_examples", "basic_module"),
 		"--create-workspace",
@@ -622,5 +622,13 @@ func TestWithExecutionOrderGroups(t *testing.T) {
 		"--root",
 		filepath.Join("..", "test_examples", "chained_dependencies"),
 		"--execution-order-groups",
+	})
+}
+
+func TestWithWorkspaces(t *testing.T) {
+	runTest(t, filepath.Join("golden", "withWorkspaces.yaml"), []string{
+		"--workspace", "dev", "--workspace", "prod",
+		"--root",
+		filepath.Join("..", "test_examples", "basic_module"),
 	})
 }
