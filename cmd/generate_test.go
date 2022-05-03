@@ -219,8 +219,8 @@ func TestUnparseableParent(t *testing.T) {
 	})
 }
 
-func TestWithWorkspaces(t *testing.T) {
-	runTest(t, filepath.Join("golden", "withWorkspace.yaml"), []string{
+func TestWithCreateWorkspace(t *testing.T) {
+	runTest(t, filepath.Join("golden", "withCreateWorkspace.yaml"), []string{
 		"--root",
 		filepath.Join("..", "test_examples", "basic_module"),
 		"--create-workspace",
@@ -614,5 +614,13 @@ func TestWithOriginalDir(t *testing.T) {
 	runTest(t, filepath.Join("golden", "withOriginalDir.yaml"), []string{
 		"--root",
 		filepath.Join("..", "test_examples", "with_original_dir"),
+	})
+}
+
+func TestWithWorkspaces(t *testing.T) {
+	runTest(t, filepath.Join("golden", "withWorkspaces.yaml"), []string{
+		"--workspace", "dev", "--workspace", "prod",
+		"--root",
+		filepath.Join("..", "test_examples", "basic_module"),
 	})
 }
