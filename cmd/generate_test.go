@@ -34,6 +34,7 @@ func resetForRun() error {
 	createWorkspace = false
 	createProjectName = false
 	preserveWorkflows = true
+	workspaces = []string{}
 	preserveProjects = true
 	defaultWorkflow = ""
 	filterPath = ""
@@ -83,6 +84,42 @@ func runTest(t *testing.T, goldenFile string, args []string) {
 	}
 
 	assert.Equal(t, goldenContents, content)
+}
+
+func testPreservingProjects(t *testing.T, args []string, old string, goldenfile string) {
+	err := resetForRun()
+	if err != nil {
+		t.Error("Failed to reset default flags")
+		return
+	}
+
+	randomInt := rand.Int()
+	filename := filepath.Join("test_artifacts", fmt.Sprintf("%d.yaml", randomInt))
+	defer os.Remove(filename)
+
+	// Create an existing file to simulate an existing atlantis.yaml file
+	contents := []byte(old)
+	ioutil.WriteFile(filename, contents, 0644)
+
+	args_ := append([]string{
+		"generate", "--preserve-projects",
+		"--output",
+		filename}, args...)
+	content, err := RunWithFlags(filename, args_)
+	if err != nil {
+		t.Error("Failed to read file")
+		return
+	}
+
+	goldenContents, err := ioutil.ReadFile(goldenfile)
+	if err != nil {
+		t.Error("Failed to read golden file")
+		return
+	}
+
+	if string(content) != string(goldenContents) {
+		t.Errorf("Content did not match golden file.\n\nExpected Content: %s\n\nContent: %s", string(goldenContents), string(content))
+	}
 }
 
 func TestSettingRoot(t *testing.T) {
@@ -219,8 +256,8 @@ func TestUnparseableParent(t *testing.T) {
 	})
 }
 
-func TestWithWorkspaces(t *testing.T) {
-	runTest(t, filepath.Join("golden", "withWorkspace.yaml"), []string{
+func TestWithCreateWorkspace(t *testing.T) {
+	runTest(t, filepath.Join("golden", "withCreateWorkspace.yaml"), []string{
 		"--root",
 		filepath.Join("..", "test_examples", "basic_module"),
 		"--create-workspace",
@@ -357,18 +394,10 @@ func TestPreservingOldWorkflows(t *testing.T) {
 }
 
 func TestPreservingOldProjects(t *testing.T) {
-	err := resetForRun()
-	if err != nil {
-		t.Error("Failed to reset default flags")
-		return
-	}
-
-	randomInt := rand.Int()
-	filename := filepath.Join("test_artifacts", fmt.Sprintf("%d.yaml", randomInt))
-	defer os.Remove(filename)
-
-	// Create an existing file to simulate an existing atlantis.yaml file
-	contents := []byte(`projects:
+	testPreservingProjects(t,
+		[]string{"--root",
+			filepath.Join("..", "test_examples", "basic_module")},
+		`projects:
 - autoplan:
     enabled: false
     when_modified:
@@ -376,31 +405,32 @@ func TestPreservingOldProjects(t *testing.T) {
     - '*.tf*'
   dir: someDir
   name: projectFromPreviousRun 
-`)
-	ioutil.WriteFile(filename, contents, 0644)
+`, filepath.Join("golden", "oldProjectsPreserved.yaml"))
+}
 
-	content, err := RunWithFlags(filename, []string{
-		"generate",
-		"--preserve-projects",
-		"--output",
-		filename,
-		"--root",
-		filepath.Join("..", "test_examples", "basic_module"),
-	})
-	if err != nil {
-		t.Error("Failed to read file")
-		return
-	}
-
-	goldenContents, err := ioutil.ReadFile(filepath.Join("golden", "oldProjectsPreserved.yaml"))
-	if err != nil {
-		t.Error("Failed to read golden file")
-		return
-	}
-
-	if string(content) != string(goldenContents) {
-		t.Errorf("Content did not match golden file.\n\nExpected Content: %s\n\nContent: %s", string(goldenContents), string(content))
-	}
+func TestPreservingOldProjectsWorkspaces(t *testing.T) {
+	testPreservingProjects(t,
+		[]string{"--workspace", "dev",
+			"--root",
+			filepath.Join("..", "test_examples", "basic_module")},
+		`projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.foo'
+    - '*.bar*'
+  dir: .
+  workspace: dev
+  name: projectFromPreviousRun 
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+  dir: someDir
+  workspace: prod
+  name: projectFromPreviousRun 
+`, filepath.Join("golden", "oldProjectsWorkspacesPreserved.yaml"))
 }
 
 func TestEnablingAutomerge(t *testing.T) {
@@ -622,5 +652,13 @@ func TestWithExecutionOrderGroups(t *testing.T) {
 		"--root",
 		filepath.Join("..", "test_examples", "chained_dependencies"),
 		"--execution-order-groups",
+	})
+}
+
+func TestWithWorkspaces(t *testing.T) {
+	runTest(t, filepath.Join("golden", "withWorkspaces.yaml"), []string{
+		"--workspace", "dev", "--workspace", "prod",
+		"--root",
+		filepath.Join("..", "test_examples", "basic_module"),
 	})
 }
