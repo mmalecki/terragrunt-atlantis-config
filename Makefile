@@ -1,4 +1,4 @@
-VERSION=1.16.0
+VERSION=1.16.0-workspaces
 FILE_COMMAND=terragrunt-atlantis-config
 DIR_BUILD=./build
 PATH_BUILD=${DIR_BUILD}/${FILE_COMMAND}/${VERSION}
